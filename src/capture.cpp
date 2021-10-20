@@ -726,7 +726,9 @@ void acquisition::Capture::init_cameras(bool soft = false) {
                 cams[i].setEnumValue("AcquisitionMode", "Continuous");
                 
                 // set only master to be software triggered
-                if (cams[i].is_master()) { 
+                // -> Always trigger every cameras
+                //if (cams[i].is_master()) { 
+                if (1) { 
                     if (MAX_RATE_SAVE_){
                       cams[i].setEnumValue("LineSelector", "Line2");
                       cams[i].setEnumValue("LineMode", "Output");
@@ -1002,7 +1004,9 @@ void acquisition::Capture::run_soft_trig() {
     int count = 0;
     
     if (!EXTERNAL_TRIGGER_) {
-        cams[MASTER_CAM_].trigger();
+        // cams[MASTER_CAM_].trigger();
+        for (int i = numCameras_-1; i>=0; i--)
+                    cams[i].trigger();
     }
     
     get_mat_images();
@@ -1027,7 +1031,7 @@ void acquisition::Capture::run_soft_trig() {
     VERIFY_BINNING_ = true;
     }
 
-
+    // ros::Rate delay_rate(5 * 1000 * 1000);
     ros::Rate ros_rate(soft_framerate_);
     try{
         while( ros::ok() ) {
@@ -1082,7 +1086,17 @@ void acquisition::Capture::run_soft_trig() {
             // Call update functions
 
             if (!EXTERNAL_TRIGGER_) {
-                cams[MASTER_CAM_].trigger();
+                // cams[MASTER_CAM_].trigger();
+                
+                for (int i = numCameras_-1; i>=0; i--) {
+                    // ROS_INFO("Trigger IN");
+                    // ros::Duration(2).sleep();
+                    cams[i].trigger();
+                    // ros::Duration(2).sleep();
+                    // delay_rate.sleep();
+                    // ROS_INFO("Trigger OUT");
+                }
+                
             }
             get_mat_images();
 
