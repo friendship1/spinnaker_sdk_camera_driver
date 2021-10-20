@@ -2,6 +2,12 @@
 #include <nodelet/nodelet.h>
 #include <pluginlib/class_list_macros.h>
 
+#include <pluginlib/class_list_macros.h> 
+#include <nodelet/nodelet.h> 
+#include <ros/ros.h> 
+#include <std_msgs/String.h> 
+#include <stdio.h> 
+
 PLUGINLIB_EXPORT_CLASS(acquisition::Capture, nodelet::Nodelet)
 
 acquisition::Capture::~Capture(){
@@ -55,6 +61,11 @@ void acquisition::Capture::onInit() {
     init_array();
     // calling capture::run() in a different thread
     pubThread_.reset(new boost::thread(boost::bind(&acquisition::Capture::run, this)));
+    // pubThread_.reset(new boost::thread(boost::bind(&acquisition::Capture::run2, this)));
+    // ros::Subscriber sub_lidar = nh_.subscribe("/rosout/timestamp", 1000, &acquisition::Capture::lidarCallback, this);
+    // ros::Subscriber sub_lidar = nh_pvt_.subscribe("/rosout/timestamp", 1000, &acquisition::Capture::lidarCallback, this );
+    // ros::NodeHandle& nh2_ = this->getNodeHandle();
+    // ros::Subscriber sub_lidar = nh_.subscribe("/imu/sync_trigger", 1000, &acquisition::Capture::lidarCallback,this);
     NODELET_INFO("onInit Initialized");
 }
 
@@ -1225,7 +1236,8 @@ void acquisition::Capture::write_queue_to_disk(queue<ImagePtr>* img_q, int cam_n
             }
         #endif
 
-        ImagePtr convertedImage = img_q->front();
+        // ImagePtr convertedImage = img_q->front();
+        ImagePtr convertedImage = img_q->back(); // get latest image
         
         #ifdef trigger_msgs_FOUND
             uint64_t timeStamp;
@@ -1318,7 +1330,8 @@ void acquisition::Capture::acquire_images_to_queue(vector<queue<ImagePtr>>*  img
                 ROS_DEBUG_STREAM("Queue no. "<<i<<" size: "<<img_qs->at(i).size());
 
                 // Release image
-                //convertedImage->Release();
+                //if(img_qs->at(i).size() >= 5)
+                //    img_qs->front()->Release();
             }
             catch (Spinnaker::Exception &e) {
                 ROS_ERROR_STREAM("  Exception in Acquire to queue thread" << "\nError: " << e.what());

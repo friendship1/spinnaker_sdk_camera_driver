@@ -23,6 +23,7 @@
 #include <nodelet/loader.h>
 #include "pluginlib/class_list_macros.h"
 
+#include <std_msgs/String.h> 
 #ifdef trigger_msgs_FOUND
   #include <trigger_msgs/sync_trigger.h>
 #endif 
