@@ -1,11 +1,10 @@
 cam_ids:
-<<<<<<< HEAD
-- 17197554
-- 17197556
+- 21192522
+- 21320038
 cam_aliases:
 - cam0
 - cam1
-master_cam: 17197554
+master_cam:  21192522
 skip: 20
 delay: 1.0
 
@@ -22,8 +21,8 @@ delay: 1.0
 
 #Camera info message details
 distortion_model: plumb_bob
-image_height: 1024
-image_width: 1280
+image_height: 1104
+image_width: 1608
 
 distortion_coeffs:
 - [-0.021141875266089592, -0.3733872931278025, 2.385982550579459, 3.2824571732099725]
@@ -42,7 +41,6 @@ rectification_coeffs:
 projection_coeffs:
 - [913.700317, 0.000000, 953.448302, 0.000000, 0.000000, 1063.296631, 777.871993, 0.000000, 0.000000, 0.000000, 1.000000, 0.000000]
 - [913.700317, 0.000000, 953.448302, 0.000000, 0.000000, 1063.296631, 777.871993, 0.000000, 0.000000, 0.000000, 1.000000, 0.000000]
-<<<<<<< HEAD
 
 flip_horizontal:
 - false
@@ -51,5 +49,3 @@ flip_horizontal:
 flip_vertical:
 - false
 - false
-=======
->>>>>>> master
