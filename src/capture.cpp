@@ -174,8 +174,11 @@ void acquisition::Capture::init_variables_register_to_ros() {
             for ( int i=0;i<numCameras_;i++){
                 std::queue<SyncInfo_> sync_message_queue;
                 sync_message_queue_vector_.push_back(sync_message_queue);
+                trigger_signal_time.sec = 0;
+                trigger_signal_time.nsec = 0;
             }
         }
+        trigger_cnt_ = 0;
     #endif
     
     //dynamic reconfigure
@@ -1357,6 +1360,73 @@ void acquisition::Capture::acquire_images_to_queue(vector<queue<ImagePtr>>*  img
     return;
 }
 
+void acquisition::Capture::save_mat_frames_lidar_ts(int dump, ros::Time ts) {
+    // Save mat_frames in lidar timestamp filename
+    double t = ros::Time::now().toSec();
+
+    if (!CAM_DIRS_CREATED_)
+        create_cam_directories();
+    
+    string timestamp;
+    mesg.name.clear();
+    for (unsigned int i = 0; i < numCameras_; i++) {
+
+        if (dump) {
+            
+            imwrite(dump_img_.c_str(), frames_[i]);
+            ROS_DEBUG_STREAM("Skipping frame...");
+            
+        } else {
+
+            if (MASTER_TIMESTAMP_FOR_ALL_)
+                timestamp = time_stamps_[MASTER_CAM_];
+            else
+                timestamp = time_stamps_[i];
+
+            std::stringstream ss;
+            ss << ts.sec << ts.nsec << "000";
+            timestamp = ss.str();
+
+            ostringstream filename;
+            filename<< path_ << cam_names_[i] << "/" << timestamp << ext_;
+            ROS_DEBUG_STREAM("Saving image at " << filename.str());
+            //ros image names 
+            mesg.name.push_back(filename.str());
+            imwrite(filename.str(), frames_[i]);
+            
+        }
+
+    }
+    save_mat_time_ = ros::Time::now().toSec() - t;
+}
+
+void acquisition::Capture::export_to_ROS_own(ros::Time ts) {
+    // publish camera in lidar timestamp
+    double t = ros::Time::now().toSec();
+    std_msgs::Header img_msg_header;
+
+    img_msg_header.stamp = ts;
+    
+    string frame_id_prefix;
+    if (tf_prefix_.compare("") != 0)
+        frame_id_prefix = tf_prefix_ +"/";
+    else frame_id_prefix="";
+
+    for (unsigned int i = 0; i < numCameras_; i++) {
+        img_msg_header.frame_id = frame_id_prefix + "cam_"+to_string(i)+"_optical_frame";
+        cam_info_msgs[i]->header = img_msg_header;
+
+        if(color_)
+            img_msgs[i]=cv_bridge::CvImage(img_msg_header, "bgr8", frames_[i]).toImageMsg();
+        else
+            img_msgs[i]=cv_bridge::CvImage(img_msg_header, "mono8", frames_[i]).toImageMsg();
+
+        camera_image_pubs[i].publish(img_msgs[i],cam_info_msgs[i]);
+
+    }
+    export_to_ROS_time_ = ros::Time::now().toSec()-t;;
+}
+
 void acquisition::Capture::run_mt() {
     ROS_INFO("*** ACQUISITION MULTI-THREADED***");
     
@@ -1383,11 +1453,93 @@ void acquisition::Capture::run_mt() {
     ROS_DEBUG("All Threads Joined");
 }
 
+
+void acquisition::Capture::run_mt_own() {
+    ROS_INFO("*** ACQUISITION MULTI-THREADED-OWN***");
+    start_acquisition();
+    if (!CAM_DIRS_CREATED_)
+        create_cam_directories();
+    
+    boost::thread_group threads;
+    
+    // start
+    threads.create_thread(boost::bind(&Capture::save_mt, this));
+
+    // assign a new thread to write the nth image to disk acquired in a queue
+    for (int i=0; i<numCameras_; i++)
+        threads.create_thread(boost::bind(&Capture::trigger_mt, this, i));
+
+    threads.join_all();
+    ROS_DEBUG("All Threads Joined");
+}
+
+void acquisition::Capture::save_mt() {
+    int k_numImages = nframes_;
+    int imageCnt =0;
+
+    ROS_INFO_STREAM("k_numImages"<<nframes_);
+    while (imageCnt < k_numImages){
+        if(trigger_cnt_ < 2){
+            boost::this_thread::sleep(boost::posix_time::milliseconds(5));
+            continue;
+        }
+        get_mat_images();
+        if (SAVE_) {
+            // count++;
+            if (SAVE_BIN_)
+                save_binary_frames(0);
+            else
+                save_mat_frames_lidar_ts(0, lidar_timestamp_);
+        }
+        trigger_cnt_mutex_.lock();
+        trigger_cnt_ = 0;
+        trigger_cnt_mutex_.unlock();
+        imageCnt++;
+
+        
+        if (EXPORT_TO_ROS_) export_to_ROS_own(lidar_timestamp_);
+        //cams[MASTER_CAM_].targetGreyValueTest();
+        // ros publishing messages
+        // acquisition_pub.publish(mesg);
+    }
+}
+
+void acquisition::Capture::trigger_mt(int cam_no) {
+    ROS_INFO("  Write Queue to Disk Thread Initiated for cam: %d", cam_no);
+
+    int imageCnt =0;
+    string id = cam_ids_[cam_no];
+
+    int k_numImages = nframes_;
+    ROS_INFO_STREAM("k_numImages"<<nframes_);
+    while (imageCnt < k_numImages){
+//     ROS_DEBUG_STREAM("  Write Queue to Disk for cam: "<< cam_no <<" size = "<<img_q->size());
+
+        // sleep for 5 milliseconds if the queue is empty        
+        if(trigger_signal_time.sec == 0){
+            boost::this_thread::sleep(boost::posix_time::milliseconds(5));
+            continue;
+        }
+        ROS_INFO("  tigger ON ");
+        
+        cams[cam_no].trigger();
+        trigger_cnt_mutex_.lock();
+        trigger_cnt_++;
+        trigger_cnt_mutex_.unlock();
+        triger_singal_time_mutex.lock();
+        trigger_signal_time.sec = 0;
+        triger_singal_time_mutex.unlock();
+        imageCnt++;
+    }
+}
 void acquisition::Capture::run() {
     if (MAX_RATE_SAVE_)
         run_mt();
-    else
-        run_soft_trig();
+    else {
+        // run_soft_trig();
+        run_mt_own();
+    }
+        
     ROS_DEBUG("Run completed");
 }
 

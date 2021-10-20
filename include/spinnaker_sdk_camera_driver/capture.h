@@ -49,6 +49,11 @@ namespace acquisition {
         std::shared_ptr<boost::thread> pubThread_;
 
 void lidarCallback(const sensor_msgs::Imu&);
+void trigger_mt(int );
+    void save_mt();
+    void run_mt_own();
+    void save_mat_frames_lidar_ts(int, ros::Time);
+    void export_to_ROS_own(ros::Time);
         void load_cameras();
         void init_variables_register_to_ros();
         void init_array();
@@ -159,6 +164,11 @@ void lidarCallback(const sensor_msgs::Imu&);
             };
             std::vector<std::queue<SyncInfo_>> sync_message_queue_vector_;
             ros::Subscriber timeStamp_sub;
+            int trigger_cnt_;
+            boost::mutex trigger_cnt_mutex_;  
+            ros::Time trigger_signal_time;
+            boost::mutex triger_singal_time_mutex;
+            ros::Time lidar_timestamp_;
         #endif
         
         
