@@ -24,8 +24,10 @@
 #include "pluginlib/class_list_macros.h"
 
 #include <std_msgs/String.h> 
+#include <sensor_msgs/Imu.h>
+
 #ifdef trigger_msgs_FOUND
-  #include <trigger_msgs/sync_trigger.h>
+  // #include <trigger_msgs/sync_trigger.h>
 #endif 
 
 using namespace Spinnaker;
@@ -46,6 +48,7 @@ namespace acquisition {
         
         std::shared_ptr<boost::thread> pubThread_;
 
+void lidarCallback(const sensor_msgs::Imu&);
         void load_cameras();
         void init_variables_register_to_ros();
         void init_array();
@@ -149,7 +152,7 @@ namespace acquisition {
             uint32_t prev_imu_trigger_count_ = 0; 
             uint32_t latest_imu_trigger_count_;
 
-            void assignTimeStampCallback(const trigger_msgs::sync_trigger::ConstPtr& msg);
+            // void assignTimeStampCallback(const trigger_msgs::sync_trigger::ConstPtr& msg);
             struct SyncInfo_{
                 uint32_t latest_imu_trigger_count_;
                 ros::Time latest_imu_trigger_time_;

@@ -8,6 +8,8 @@
 #include <std_msgs/String.h> 
 #include <stdio.h> 
 
+#include <sensor_msgs/Imu.h>
+
 PLUGINLIB_EXPORT_CLASS(acquisition::Capture, nodelet::Nodelet)
 
 acquisition::Capture::~Capture(){
@@ -166,7 +168,8 @@ void acquisition::Capture::init_variables_register_to_ros() {
     #ifdef trigger_msgs_FOUND
     // initiliazing the trigger subscriber
         if (EXTERNAL_TRIGGER_){
-            timeStamp_sub = nh_.subscribe("/imu/sync_trigger", 1000, &acquisition::Capture::assignTimeStampCallback,this);
+            // timeStamp_sub = nh_.subscribe("/imu/sync_trigger", 1000, &acquisition::Capture::assignTimeStampCallback,this);
+            timeStamp_sub = nh_.subscribe("/imu", 1000, &acquisition::Capture::lidarCallback,this);
 
             for ( int i=0;i<numCameras_;i++){
                 std::queue<SyncInfo_> sync_message_queue;
@@ -1427,7 +1430,18 @@ void acquisition::Capture::dynamicReconfigureCallback(spinnaker_sdk_camera_drive
     }
 }
 
-#ifdef trigger_msgs_FOUND
+void acquisition::Capture::lidarCallback(const sensor_msgs::Imu& msg) {
+    // ROS_INFO("I heard: [%s]", msg->data.c_str());
+    ROS_INFO_STREAM("I hear");
+    // Copied from function void acquisition::Capture::assignTimeStampCallback by wjw
+    //ROS_INFO_STREAM("Time stamp is "<< msg->header.stamp);
+    triger_singal_time_mutex.lock();
+    trigger_signal_time = ros::Time::now();
+    triger_singal_time_mutex.unlock();
+    lidar_timestamp_ = trigger_signal_time;
+}
+
+#ifdef trigger_msgs_FOUND_deleted // <- Never use this part
     void acquisition::Capture::assignTimeStampCallback(const trigger_msgs::sync_trigger::ConstPtr& msg){
         //ROS_INFO_STREAM("Time stamp is "<< msg->header.stamp);
 
