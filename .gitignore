@@ -2,7 +2,6 @@ $ cat .gitignore
 *.[oa]
 *~
 
-include/spinnaker_sdk_camera_driver/spinnaker_configure.h
 
 # no .a files
 #*.a
@@ -19,7 +18,6 @@ data/
 devel
 ~devel/lib/datacollection_neu/*.xml
 .catkin_workspace
-include/spinnaker_sdk_camera_driver/spinnaker_configure.h
 
 # ignore doc/notes.txt, but not doc/server/arch.txt
 #doc/*.txt

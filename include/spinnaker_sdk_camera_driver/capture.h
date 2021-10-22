@@ -25,6 +25,7 @@
 
 #include <std_msgs/String.h> 
 #include <sensor_msgs/Imu.h>
+#include <sensor_msgs/PointCloud2.h>
 
 #ifdef trigger_msgs_FOUND
   // #include <trigger_msgs/sync_trigger.h>
