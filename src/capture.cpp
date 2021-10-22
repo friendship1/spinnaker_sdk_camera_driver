@@ -9,6 +9,7 @@
 #include <stdio.h> 
 
 #include <sensor_msgs/Imu.h>
+#include <sensor_msgs/PointCloud2.h>
 
 PLUGINLIB_EXPORT_CLASS(acquisition::Capture, nodelet::Nodelet)
 
@@ -1582,13 +1583,13 @@ void acquisition::Capture::dynamicReconfigureCallback(spinnaker_sdk_camera_drive
     }
 }
 
-void acquisition::Capture::lidarCallback(const sensor_msgs::Imu& msg) {
+void acquisition::Capture::lidarCallback(const sensor_msgs::PointCloud2& msg) {
     // ROS_INFO("I heard: [%s]", msg->data.c_str());
     ROS_INFO_STREAM("I hear");
     // Copied from function void acquisition::Capture::assignTimeStampCallback by wjw
     //ROS_INFO_STREAM("Time stamp is "<< msg->header.stamp);
     triger_singal_time_mutex.lock();
-    trigger_signal_time = ros::Time::now();
+    trigger_signal_time = msg.header.stamp;
     triger_singal_time_mutex.unlock();
     lidar_timestamp_ = trigger_signal_time;
 }

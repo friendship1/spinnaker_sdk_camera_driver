@@ -48,7 +48,7 @@ namespace acquisition {
         
         std::shared_ptr<boost::thread> pubThread_;
 
-void lidarCallback(const sensor_msgs::Imu&);
+void lidarCallback(const sensor_msgs::PointCloud2& msg);
 void trigger_mt(int );
     void save_mt();
     void run_mt_own();
