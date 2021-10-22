@@ -1474,16 +1474,18 @@ void acquisition::Capture::run_mt_own() {
     ROS_DEBUG("All Threads Joined");
 }
 
-void acquisition::Capture::save_mt() {
+void acquisition::Capture::save_mt() { // one
     int k_numImages = nframes_;
     int imageCnt =0;
 
     ROS_INFO_STREAM("k_numImages"<<nframes_);
     while (imageCnt < k_numImages){
+        trigger_cnt_mutex_.lock();
         if(trigger_cnt_ < 2){
-            boost::this_thread::sleep(boost::posix_time::milliseconds(5));
+            // boost::this_thread::sleep(boost::posix_time::milliseconds(5));
             continue;
         }
+        trigger_cnt_mutex_.unlock();
         get_mat_images();
         if (SAVE_) {
             // count++;
@@ -1495,17 +1497,21 @@ void acquisition::Capture::save_mt() {
         trigger_cnt_mutex_.lock();
         trigger_cnt_ = 0;
         trigger_cnt_mutex_.unlock();
-        imageCnt++;
-
         
+        triger_singal_time_mutex.lock();
+        trigger_signal_time.sec = 0;
+        triger_singal_time_mutex.unlock();
+
+        // imageCnt++;
         if (EXPORT_TO_ROS_) export_to_ROS_own(lidar_timestamp_);
+
         //cams[MASTER_CAM_].targetGreyValueTest();
         // ros publishing messages
         // acquisition_pub.publish(mesg);
     }
 }
 
-void acquisition::Capture::trigger_mt(int cam_no) {
+void acquisition::Capture::trigger_mt(int cam_no) { // two
     ROS_INFO("  Write Queue to Disk Thread Initiated for cam: %d", cam_no);
 
     int imageCnt =0;
@@ -1516,21 +1522,21 @@ void acquisition::Capture::trigger_mt(int cam_no) {
     while (imageCnt < k_numImages){
 //     ROS_DEBUG_STREAM("  Write Queue to Disk for cam: "<< cam_no <<" size = "<<img_q->size());
 
-        // sleep for 5 milliseconds if the queue is empty        
+        // sleep for 5 milliseconds if the queue is empty
+        triger_singal_time_mutex.lock();     
         if(trigger_signal_time.sec == 0){
-            boost::this_thread::sleep(boost::posix_time::milliseconds(5));
+            // boost::this_thread::sleep(boost::posix_time::milliseconds(5));
             continue;
         }
+        triger_singal_time_mutex.unlock();
         ROS_INFO("  tigger ON ");
         
         cams[cam_no].trigger();
         trigger_cnt_mutex_.lock();
         trigger_cnt_++;
         trigger_cnt_mutex_.unlock();
-        triger_singal_time_mutex.lock();
-        trigger_signal_time.sec = 0;
-        triger_singal_time_mutex.unlock();
-        imageCnt++;
+        
+        // imageCnt++;
     }
 }
 void acquisition::Capture::run() {
@@ -1590,8 +1596,9 @@ void acquisition::Capture::lidarCallback(const sensor_msgs::PointCloud2& msg) {
     //ROS_INFO_STREAM("Time stamp is "<< msg->header.stamp);
     triger_singal_time_mutex.lock();
     trigger_signal_time = msg.header.stamp;
-    triger_singal_time_mutex.unlock();
     lidar_timestamp_ = trigger_signal_time;
+    triger_singal_time_mutex.unlock();
+    
 }
 
 #ifdef trigger_msgs_FOUND_deleted // <- Never use this part
